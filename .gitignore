@@ -1,1 +1,4 @@
 .env
+textos.txt
+__pycache__/
+*.pyc
