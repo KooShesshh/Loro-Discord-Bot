@@ -28,7 +28,7 @@ source venv/bin/activate   # Linux/Mac
 # or
 venv\Scripts\activate      # Windows
 
-pip install -r requirements.txt
+pip install discord.py markovify python-dotenv
 ```
 
 3. Create a `.env` file with your token:
