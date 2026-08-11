@@ -8,6 +8,7 @@ Discord bot with an evolving personality and memory engine written in C++.
 - Personality that changes based on the language used (kind, jokester, rude)
 - Sentence generation with Markovify using the real message history
 - Response style adapts to the current personality
+- Automatically creates .txt files
 
 ## Requirements
 
