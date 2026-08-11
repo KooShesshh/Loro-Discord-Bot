@@ -27,6 +27,7 @@ python -m venv venv
 source venv/bin/activate   # Linux/Mac
 # or
 venv\Scripts\activate      # Windows
+.\venv\Scripts\Activate.ps1 # if dont works
 
 pip install discord.py markovify python-dotenv
 ```
