@@ -1,37 +1,77 @@
 import discord
 import os
 import markovify
-import random
+import subprocess
 from dotenv import load_dotenv
 from discord.ext import commands
 
 load_dotenv()
 TOKEN = os.getenv("DISCORD_TOKEN")
 
-CORPUS_PATH = "textos.txt"
-
 intents = discord.Intents.default()
 intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-def ensure_corpus():
-    if not os.path.exists(CORPUS_PATH):
-        with open(CORPUS_PATH, "w", encoding="utf-8") as f:
-            f.write("")
-
+estado_personalidad = {
+    "amable": 0.5,
+    "bromista": 0.3,
+    "grosero": 0.2
+}
 
 def build_model():
-    ensure_corpus()
-    with open(CORPUS_PATH, "r", encoding="utf-8") as f:
-        text = f.read()
-    if len(text.strip()) == 0:
+    carpeta = os.path.dirname(os.path.abspath(__file__))
+    ruta = os.path.join(carpeta, "mis_palabras.txt")
+
+    if not os.path.exists(ruta):
         return None
-    return markovify.NewlineText(text, state_size=1)
+
+    mensajes = []
+    with open(ruta, "r", encoding="utf-8") as f:
+        for linea in f:
+            linea = linea.strip()
+            if "|" in linea:
+                contenido = linea.split("|", 1)[1].strip()
+                if contenido:
+                    mensajes.append(contenido)
+
+    if not mensajes:
+        return None
+
+    texto = "\n".join(mensajes)
+    return markovify.NewlineText(texto, state_size=1)
+
+
+def actualizar_cpp(mensaje: str):
+    carpeta = os.path.dirname(os.path.abspath(__file__))
+    ejecutable = os.path.join(carpeta, "memoria")
+
+    try:
+        proceso = subprocess.Popen(
+            [ejecutable],
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            cwd=carpeta
+        )
+        salida, error = proceso.communicate(input=mensaje + "\n", timeout=5)
+
+        for linea in salida.splitlines():
+            if "AMABLE:" in linea:
+                partes = linea.split()
+                amable = float(partes[0].split(":")[1])
+                bromista = float(partes[1].split(":")[1])
+                grosero = float(partes[2].split(":")[1])
+                return amable, bromista, grosero
+
+        return 0.5, 0.3, 0.2
+
+    except Exception as e:
+        return 0.5, 0.3, 0.2
 
 
 @bot.event
 async def on_ready():
-    ensure_corpus()
     print(f"Conectado como {bot.user}")
 
 
@@ -48,8 +88,10 @@ async def on_message(message):
     if not message.content.strip():
         return
 
-    with open(CORPUS_PATH, "a", encoding="utf-8") as f:
-        f.write(message.content.strip() + "\n")
+    amable, bromista, grosero = actualizar_cpp(message.content.strip())
+    estado_personalidad["amable"] = amable
+    estado_personalidad["bromista"] = bromista
+    estado_personalidad["grosero"] = grosero
 
 
 @bot.command()
@@ -60,10 +102,22 @@ async def hablar(ctx):
         return
 
     sentence = model.make_sentence(tries=100, test_output=False)
-    if sentence:
-        await ctx.send(sentence)
-    else:
+    if not sentence:
         await ctx.send("Me quedé sin palabras...")
+        return
+
+    amable = estado_personalidad["amable"]
+    bromista = estado_personalidad["bromista"]
+    grosero = estado_personalidad["grosero"]
+
+    if amable >= bromista and amable >= grosero:
+        respuesta = f"{sentence} :3"
+    elif bromista >= amable and bromista >= grosero:
+        respuesta = f"{sentence} XDDD"
+    else:
+        respuesta = f"{sentence} >:c"
+
+    await ctx.send(respuesta)
 
 
 bot.run(TOKEN)
