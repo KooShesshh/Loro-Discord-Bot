@@ -43,7 +43,10 @@ def build_model():
 
 def actualizar_cpp(mensaje: str):
     carpeta = os.path.dirname(os.path.abspath(__file__))
-    ejecutable = os.path.join(carpeta, "memoria")
+    if os.name == "nt":
+        ejecutable = os.path.join(carpeta, "memoria.exe")
+    else:
+        ejecutable = os.path.join(carpeta, "memoria")
 
     try:
         proceso = subprocess.Popen(
